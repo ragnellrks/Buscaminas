@@ -7,4 +7,8 @@
         No hagas un click largo en una casilla donde no hay una mina porque perderás.
         Ganas una vez hayas encontrado todas las minas.</string>
     <string name="instmenu">Instrucciones</string>
+    <string name="configmenu">Dificultad</string>
+    <string name="principiante">Nivel Principiante</string>
+    <string name="amateur">Nivel Amateur</string>
+    <string name="experto">Nivel Experto</string>
 </resources>
