@@ -16,21 +16,25 @@ import android.widget.Button;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.gridlayout.widget.GridLayout;
 
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity {
+import java.util.Random;
+
+public class MainActivity extends AppCompatActivity implements DialogoDificultad.OnSeleccionDificultad{
 
 
     public int[][] tablero;
-    public Button[] botones;
     public int minasTotales = 10;
-    public int dificultad = 0;
+    public int dificulty = 0;
 
     //Layouts
     GridLayout g;
     ConstraintLayout clayout;
     LinearLayout.LayoutParams layoutParams;
+
+    GridLayout.LayoutParams param;
 
 
     int altura;
@@ -52,11 +56,24 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        g=new GridLayout(this);
+
+
         clayout= findViewById(R.id.layoutPrincipal);
-        altura = clayout.getHeight();
-        ancho = clayout.getWidth();
-        pintarTablero();
+        clayout.post(new Runnable() {
+            @Override
+            public void run() {
+
+                altura = clayout.getHeight();
+                ancho = clayout.getWidth();
+                param=new GridLayout.LayoutParams();
+                param.setMargins(0,0,0,0);
+                param.height= ViewGroup.LayoutParams.MATCH_PARENT;
+                param.width= ViewGroup.LayoutParams.MATCH_PARENT;
+
+                pintarTablero();
+            }
+        });
+
     }
 
     @Override
@@ -78,40 +95,15 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    //TO-DO: CREAR UN DIALOG FRAGMENT PARA LA DIFICULTAD Y LAS BOMBAS.
+    
     //Método que crea el constructor de dialogo del menu de configuracion.
     private void crearMenuConfig() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.configmenu);
-        String[] items = {getString(R.string.principiante),getString(R.string.amateur),getString(R.string.experto)};
-        int seleccion = dificultad;
-        builder.setSingleChoiceItems(items, seleccion, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                    switch (which) {
-                        case 0:
-
-                            dificultad = 0;
-                            minasTotales = 10;
-                            break;
-                        case 1:
-                            dificultad = 1;
-                            minasTotales = 30;
-                            break;
-                        case 2:
-                            dificultad = 2;
-                            minasTotales = 60;
-                            break;
-                    }
-
-            }
-        });
-        builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        });
-        mostrarDialogo(builder);
+        //Anotación: se que esto no lo hemos visto en clase, lo he sacado de la documentación de DialogFragment_AlertDialog en Android developer.
+        //Básicamente crea una instancia estática (Como un constructor pero accesible sin crear la clase, ese constructor crea el dialogo y puede pasar argumentos).
+        //Esto lo he hecho porque quería que el selector de la dificultad se posara sobre la dificultad actual marcada.
+        DialogoDificultad miDialogo = DialogoDificultad.newInstance(dificulty);
+        miDialogo.show(getSupportFragmentManager(), "Dialogo Dificultad");
     }
 
     //Método para crear el constructor de dialogo de las Instrucciones.
@@ -136,36 +128,70 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pintarTablero(){
-        //Esto iniciará/reseteará el juego
 
-
-
-
-
-        //Parametros del layout
-        GridLayout.LayoutParams param=new GridLayout.LayoutParams();
-        param.setMargins(0,0,0,0);
-        param.height= ViewGroup.LayoutParams.MATCH_PARENT;
-        param.width= ViewGroup.LayoutParams.MATCH_PARENT;
+       //Es importante borrar la instancia de G en el ConstraintLayout cada vez que se llame a esta función para repintar el tablero.
+        clayout.removeView(g);
+        //Crear el gridlayout y añadirselo como hijo al ConstraintLayout
+        //Añadir filas, columnas y asignarle los parámetros
+        g=new GridLayout(getApplicationContext());
+        clayout.addView(g);
         g.setRowCount(filaColumna);
         g.setColumnCount(filaColumna);
         g.setLayoutParams(param);
-
-        Log.d("ASASDASDASSD", "Clayout: "+clayout.getHeight()+" : "+clayout.getWidth());
-        Log.d("ASASDASDASSD", "GRID: "+g.getHeight()+" : "+g.getWidth());
         //Parametros de botones
         layoutParams = new LinearLayout.LayoutParams(ancho/filaColumna,altura/filaColumna);
         layoutParams.setMargins(0,0,0,0);
 
-        for(int i = 0; i<8; i++){
-            for(int j = 0; j < 8; j++){
-                Button b = new Button(this);
-                b.setLayoutParams(layoutParams);
-                b.setBackgroundColor(Color.RED);
+        crearCampoMinas();
+        //Creacion de Botones
+        //TO-DO: Diferenciar las filas y columnas para sacar boton o imagebutton con bomba.
+        for(int i = 0; i<filaColumna; i++){
+            for(int j = 0; j < filaColumna; j++){
 
-                g.addView(b);
+                if(tablero[i][j] == -1){
+                    ImageButton ib = new ImageButton(this);
+                    ib.setLayoutParams(layoutParams);
+                    ib.setBackgroundColor(Color.RED);
+                    g.addView(ib);
+                }else{
+                    Button b = new Button(this);
+                    b.setLayoutParams(layoutParams);
+                    g.addView(b);
+                }
+
             }
         }
 
+    }
+
+    private void crearCampoMinas() {
+        tablero = new int[filaColumna][filaColumna];
+
+
+        //Rellenar la matriz con 0;
+        for(int i = 0; i<filaColumna; i++){
+            for(int j = 0; j<filaColumna; j++){
+                tablero[i][j] = 0;
+            }
+        }
+        Random rand = new Random();
+        //Poner minas
+        for(int i = 0; i<minasTotales; i++){
+            int col;
+            int fila;
+            //Repetimos esto en caso de que le valor que se genere en los números aleatorios sea -1 para que no se repitan las minas.
+            do{
+                col = rand.nextInt(filaColumna-1);
+                fila = rand.nextInt(filaColumna-1);
+            }while(tablero[col][fila] == -1);
+            tablero[col][fila] = -1;
+        }
+    }
+
+    @Override
+    public void onSeleccion(int dificultad, int minas, int filaColumn ) {
+        dificulty = dificultad;
+        minasTotales = minas;
+        filaColumna = filaColumn;
     }
 }
