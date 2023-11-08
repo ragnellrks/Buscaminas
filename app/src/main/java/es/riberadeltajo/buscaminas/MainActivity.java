@@ -8,8 +8,10 @@ import android.content.DialogInterface;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
@@ -28,6 +30,9 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
     public int[][] tablero;
     public int minasTotales = 10;
     public int dificulty = 0;
+    public int aciertos;
+
+    public boolean derrota;
 
     //Layouts
     GridLayout g;
@@ -128,7 +133,8 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
     }
 
     public void pintarTablero(){
-
+        derrota = false;
+        aciertos = 0;
        //Es importante borrar la instancia de G en el ConstraintLayout cada vez que se llame a esta función para repintar el tablero.
         clayout.removeView(g);
         //Crear el gridlayout y añadirselo como hijo al ConstraintLayout
@@ -138,24 +144,76 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
         g.setRowCount(filaColumna);
         g.setColumnCount(filaColumna);
         g.setLayoutParams(param);
+        g.setBackgroundColor(Color.BLACK);
         //Parametros de botones
         layoutParams = new LinearLayout.LayoutParams(ancho/filaColumna,altura/filaColumna);
         layoutParams.setMargins(0,0,0,0);
 
+
+        //Listener para los botones
+        View.OnClickListener listener = new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(!derrota || aciertos == g.getChildCount() - minasTotales) {
+                    boolean found = false;
+                    int columna = 0;
+                    int fila = 0;
+                    //Si encuentra un hijo en la posicion I que concuerde con el source de la View, se ejectura.
+                    for(int i = 0;!found || i != g.getChildCount();i++){
+                        if(g.getChildAt(i) == v){
+                            found = true;
+                            Log.d("Ribera del tajo", "Encontrada la vista en posición"+i);
+                            //Sacamos la posicion a la que equivale el botón en la matriz del campo.
+                            if(i==0){
+                                fila = 0;
+                                columna = 0;
+                            }else {
+                                fila = i / filaColumna;
+                                columna = i % filaColumna;
+                            }
+                        }
+                    }
+                    switch(tablero[fila][columna]){
+                        case -1:
+                            v.setBackgroundColor(Color.RED);
+                            Toast.makeText(getApplicationContext(), "HAS PERDIDO!", Toast.LENGTH_LONG).show();
+                            derrota = true;
+                            break;
+                        default:
+                            Button b = (Button) v;
+                            if (tablero[fila][columna] == 0){
+                                revealSurroundings(fila, columna);
+                            }else{
+                                b.setText(Integer.toString(tablero[fila][columna]));
+                                aciertos++;
+                            }
+                            checkForWin();
+                            b.setClickable(false);
+                            break;
+                    }
+                }
+            }
+        };
+
+        //creamos el Tablero
         crearCampoMinas();
+
+
         //Creacion de Botones
-        //TO-DO: Diferenciar las filas y columnas para sacar boton o imagebutton con bomba.
         for(int i = 0; i<filaColumna; i++){
             for(int j = 0; j < filaColumna; j++){
+                //PROBAR A DIVIDIR EL INT QUE SE OBTIENE ELIGIENDO EL HIJO DEL GRIDLAYOUT ENTRE FILACOLUMNAS
 
                 if(tablero[i][j] == -1){
                     ImageButton ib = new ImageButton(this);
                     ib.setLayoutParams(layoutParams);
-                    ib.setBackgroundColor(Color.RED);
+                    ib.setOnClickListener(listener);
+                    ib.setBackgroundColor(Color.BLUE);
                     g.addView(ib);
                 }else{
                     Button b = new Button(this);
                     b.setLayoutParams(layoutParams);
+                    b.setOnClickListener(listener);
                     g.addView(b);
                 }
 
@@ -164,16 +222,42 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
 
     }
 
+    private void checkForWin() {
+        if(aciertos == g.getChildCount() - minasTotales){
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setMessage("GANADOR!");
+            builder.setTitle("FIN DE PARTIDA!");
+            builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            mostrarDialogo(builder);
+        }
+    }
+
+    private void revealSurroundings(int i, int j) {
+        for (int k = i - 1; k <= i + 1; k++) {
+            for (int l = j - 1; l <= j + 1; l++) {
+                if (k >= 0 && k < filaColumna && l >= 0 && l < filaColumna) {
+                    int posicion = k*filaColumna+l;
+                    Button b = (Button) g.getChildAt(posicion);
+                    if(b.getText().equals("")) {
+                        b.setClickable(false);
+                        b.setText(Integer.toString(tablero[k][l]));
+                        aciertos++;
+                    }
+                }
+            }
+        }
+
+    }
+
+
     private void crearCampoMinas() {
         tablero = new int[filaColumna][filaColumna];
 
-
-        //Rellenar la matriz con 0;
-        for(int i = 0; i<filaColumna; i++){
-            for(int j = 0; j<filaColumna; j++){
-                tablero[i][j] = 0;
-            }
-        }
         Random rand = new Random();
         //Poner minas
         for(int i = 0; i<minasTotales; i++){
@@ -183,9 +267,31 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
             do{
                 col = rand.nextInt(filaColumna-1);
                 fila = rand.nextInt(filaColumna-1);
-            }while(tablero[col][fila] == -1);
-            tablero[col][fila] = -1;
+            }while(tablero[fila][col] == -1);
+            tablero[fila][col] = -1;
         }
+        //Rellenar la matriz con números respecto a las minas adyacentes
+        for(int i = 0; i<filaColumna; i++){
+            for(int j = 0; j<filaColumna; j++){
+                if(tablero[i][j] != -1) {
+                    tablero[i][j] = checkForMina(i,j);
+                }
+            }
+        }
+
+
+    }
+
+    private int checkForMina(int i, int j) {
+        int contador = 0;
+        for (int k = i - 1; k <= i + 1; k++) {
+            for (int l = j - 1; l <= j + 1; l++) {
+                if (k >= 0 && k < filaColumna && l >= 0 && l < filaColumna && tablero[k][l] == -1) {
+                    contador++;
+                }
+            }
+        }
+        return contador;
     }
 
     @Override
