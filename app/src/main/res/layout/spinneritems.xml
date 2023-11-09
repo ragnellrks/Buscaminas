@@ -6,13 +6,13 @@
     android:padding="10dp">
 
     <ImageView
-        android:id="@+id/imageView"
+        android:id="@+id/icoBomba"
         android:layout_width="40dp"
         android:layout_height="40dp"
         android:src="@drawable/bomba" />
 
     <TextView
-        android:id="@+id/textView"
+        android:id="@+id/nomBomba"
         android:layout_width="343dp"
         android:layout_height="40dp"
         android:layout_marginStart="10dp"
