@@ -19,12 +19,13 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.gridlayout.widget.GridLayout;
 
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import java.util.Random;
 
-public class MainActivity extends AppCompatActivity implements DialogoDificultad.OnSeleccionDificultad{
+public class MainActivity extends AppCompatActivity implements DialogoDificultad.OnSeleccionDificultad, DialogoBomba.OnSeleccionBomba{
 
 
     public int[][] tablero;
@@ -40,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
     LinearLayout.LayoutParams layoutParams;
 
     GridLayout.LayoutParams param;
-
+    int drawableBomba;
 
     int altura;
     int ancho;
@@ -52,7 +53,7 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         filaColumna = 8;
-
+        drawableBomba = R.drawable.bomba;
 
 
 
@@ -96,11 +97,17 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
         }else if(item.getItemId()==R.id.menuRestart){
             pintarTablero();
             Toast.makeText(this, "El juego se ha reiniciado!", Toast.LENGTH_LONG).show();
+        }else if(item.getItemId()==R.id.selectBomba){
+            crearMenuBomba();
         }
         return super.onOptionsItemSelected(item);
     }
 
-    //TO-DO: CREAR UN DIALOG FRAGMENT PARA LA DIFICULTAD Y LAS BOMBAS.
+    private void crearMenuBomba() {
+        DialogoBomba dialogoSeleccion = new DialogoBomba();
+        dialogoSeleccion.show(getSupportFragmentManager(), "Selección bomba");
+    }
+
     
     //Método que crea el constructor de dialogo del menu de configuracion.
     private void crearMenuConfig() {
@@ -158,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
                     boolean found = false;
                     int columna = 0;
                     int fila = 0;
-                    //Si encuentra un hijo en la posicion I que concuerde con el source de la View, se ejectura.
+                    //Si encuentra un hijo en la posicion I que concuerde con el source de la View, se ejecuta.
                     for(int i = 0;!found || i != g.getChildCount();i++){
                         if(g.getChildAt(i) == v){
                             found = true;
@@ -299,5 +306,12 @@ public class MainActivity extends AppCompatActivity implements DialogoDificultad
         dificulty = dificultad;
         minasTotales = minas;
         filaColumna = filaColumn;
+    }
+
+    @Override
+    public void onSeleccionDrawable(int drawable) {
+        drawableBomba = drawable;
+        MenuItem menuBomba = findViewById(R.id.selectBomba);
+        menuBomba.setIcon(drawableBomba);
     }
 }

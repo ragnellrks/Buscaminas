@@ -11,4 +11,5 @@
     <string name="principiante">Nivel Principiante</string>
     <string name="amateur">Nivel Amateur</string>
     <string name="experto">Nivel Experto</string>
+    <string name="selecBomba">Selecciona el tipo de Bomba</string>
 </resources>
